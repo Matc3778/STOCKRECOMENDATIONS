@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STRS V7 - Dashboard de Recomendaciones de Inversión</title>
+    <!-- Google Fonts & Tailwind CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- TradingView Library -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0b0f19;
+            color: #e2e8f0;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+        }
+        .glass-table-row {
+            transition: all 0.2s ease;
+        }
+        .glass-table-row:hover {
+            background: rgba(30, 41, 59, 0.6);
+            transform: translateY(-1px);
+        }
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Navbar Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">
+                    📈
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+                        STRS Hybrid Model V7
+                    </h1>
+                    <p class="text-xs text-slate-400">
+                        Dashboard Interactivo de Recomendaciones & Volatilidad 
+                        <span class="text-indigo-400 font-semibold border-l border-slate-700 ml-2 pl-2">⏱️ Predicción a <span id="lblHorizonteHeader">7</span> Días Hábiles</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Badge Periodo Retorno / Horizonte -->
+                <div class="flex items-center gap-2 text-xs bg-indigo-950/80 text-indigo-300 px-3.5 py-2 rounded-xl border border-indigo-800/60 font-semibold shadow-sm">
+                    <span>⏱️ Horizonte:</span>
+                    <strong id="lblPeriodoRetornoBadge" class="text-white font-bold">7 Días Hábiles</strong>
+                </div>
+
+                <!-- File Input Selector -->
+                <label for="csvFileInput" class="cursor-pointer text-xs bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium px-3.5 py-2 rounded-xl border border-indigo-500/50 transition-all flex items-center gap-1.5 shadow-sm shadow-indigo-500/20">
+                    <span>📂 Cargar CSV</span>
+                    <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+                </label>
+
+                <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/50">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Fecha Base: <strong id="lblFechaBase" class="text-slate-200">-</strong></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 mt-6 space-y-6">
+
+        <!-- Selector de Pestañas (Tab Switcher: Resumen vs Completo) -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-2 rounded-2xl shadow-xl">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <button id="tabBtnResumen" onclick="switchTab('RESUMEN')" 
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                    <span>🎯 Resumen Operable (Precisión ≥ 60%)</span>
+                    <span id="badgeCountResumen" class="bg-indigo-950 text-indigo-200 px-2 py-0.5 rounded-full text-[10px] font-mono">0</span>
+                </button>
+                <button id="tabBtnCompleto" onclick="switchTab('COMPLETO')" 
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                    <span>📊 Resultados Completos (Todos los Activos)</span>
+                    <span id="badgeCountCompleto" class="bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full text-[10px] font-mono">0</span>
+                </button>
+            </div>
+
+            <div id="tabDescLabel" class="text-xs text-slate-400 px-3 hidden md:block">
+                Mostrando únicamente acciones operables (Precisión Histórica ≥ 60%).
+            </div>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="glass-card p-5 relative overflow-hidden">
+                <div class="text-xs font-medium text-slate-400 uppercase tracking-wider" id="lblKpiTotalTitle">Señales Operables</div>
+                <div class="text-3xl font-extrabold text-white mt-2" id="kpiTotal">0</div>
+                <div class="text-xs text-slate-400 mt-1" id="lblKpiTotalSub">Precisión Histórica ≥ 60%</div>
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl"></div>
+            </div>
+
+            <div class="glass-card p-5 relative overflow-hidden">
+                <div class="text-xs font-medium text-emerald-400 uppercase tracking-wider">Señales de Compra</div>
+                <div class="text-3xl font-extrabold text-emerald-400 mt-2" id="kpiComprar">0</div>
+                <div class="text-xs text-slate-400 mt-1">Oportunidades de entrada 🟢</div>
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl"></div>
+            </div>
+
+            <div class="glass-card p-5 relative overflow-hidden">
+                <div class="text-xs font-medium text-rose-400 uppercase tracking-wider">Señales de Venta</div>
+                <div class="text-3xl font-extrabold text-rose-400 mt-2" id="kpiVender">0</div>
+                <div class="text-xs text-slate-400 mt-1">Sugerencias de salida 🔴</div>
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-rose-500/10 rounded-full blur-xl"></div>
+            </div>
+
+            <div class="glass-card p-5 relative overflow-hidden">
+                <div class="text-xs font-medium text-amber-400 uppercase tracking-wider">Alertas Divergencia</div>
+                <div class="text-3xl font-extrabold text-amber-400 mt-2" id="kpiAlertas">0</div>
+                <div class="text-xs text-slate-400 mt-1">Modelos en desacuerdo ⚠️</div>
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl"></div>
+            </div>
+        </div>
+
+        <!-- Controls / Search, Filters & View Toggle -->
+        <div class="glass-card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="relative w-full md:w-72">
+                    <input type="text" id="searchInput" placeholder="Buscar por Acción o Modelo..." 
+                           class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2.5 pl-10 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    <span class="absolute left-3 top-3 text-slate-500">🔍</span>
+                </div>
+
+                <!-- Botón Conmutador: Ver Todos los Campos -->
+                <button onclick="toggleDetailedView()" id="btnToggleDetail" 
+                        class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-indigo-300 hover:bg-slate-700 hover:text-white border border-indigo-800/50 transition-all flex items-center gap-2 whitespace-nowrap shadow-sm">
+                    <span id="iconToggleDetail">👁️</span>
+                    <span id="textToggleDetail">Ver Todos los Campos (Votos de Modelos)</span>
+                </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button onclick="filterRecomendacion('ALL')" id="btnFilterALL" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 transition-all">Todos</button>
+                <button onclick="filterRecomendacion('COMPRAR')" id="btnFilterCOMPRAR" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-emerald-900/40 hover:text-emerald-300 transition-all">🟢 Comprar</button>
+                <button onclick="filterRecomendacion('VENDER')" id="btnFilterVENDER" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-rose-900/40 hover:text-rose-300 transition-all">🔴 Vender</button>
+                <button onclick="filterRecomendacion('SIN_REC')" id="btnFilterSINREC" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all hidden">⚪ Sin Rec. (&lt;60%)</button>
+                <button onclick="filterDivergencia()" id="btnFilterDIVERGENCIA" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-amber-900/40 hover:text-amber-300 transition-all">⚠️ Con Alerta</button>
+            </div>
+        </div>
+
+        <!-- Data Table Card -->
+        <div class="glass-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table id="mainDataTable" class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/90 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800" id="tableHeaderRow">
+                            <!-- Headers dynamically rendered -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-800/60 font-medium">
+                        <!-- Rows dynamically rendered -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal para Gráfica de la Acción (TradingView / Yahoo Finance) -->
+    <div id="chartModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-backdrop">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-lg font-bold text-indigo-300">
+                        📊
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 id="modalTickerTitle" class="text-xl font-bold text-white tracking-wide">TICKER</h2>
+                            <span id="modalRecBadge"></span>
+                        </div>
+                        <p id="modalSubInfo" class="text-xs text-slate-400 mt-0.5">Evolución de la acción y precios en vivo</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <a id="btnYahooFinance" href="#" target="_blank" rel="noopener noreferrer" 
+                       class="hidden sm:inline-flex items-center gap-1.5 text-xs bg-purple-600/80 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg border border-purple-500/40 font-medium transition-all shadow-sm">
+                        <span>🟣 Abrir en Yahoo Finance</span>
+                        <span>↗</span>
+                    </a>
+                    <button onclick="closeChartModal()" class="w-9 h-9 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 flex items-center justify-center font-bold text-lg transition-colors">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Chart Container) -->
+            <div class="p-4 bg-slate-950 flex-1 min-h-[480px] relative flex flex-col justify-center items-center">
+                <div id="tvChartContainer" class="w-full h-[460px]"></div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 border-t border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+                <div>Tip: Haz clic en la gráfica para cambiar el marco temporal (1D, 5D, 1M, 1Y).</div>
+                <button onclick="closeChartModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 font-medium">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DATASETS EMBEBIDOS CON TODOS LOS CAMPOS
+        const EMBEDDED_RESUMEN_CSV = `Acción,Fecha Base,Ganador_Absoluto_Histórico,Rango_Precisión_Histórico,Recomendación,Alerta_Divergencia,Sentimiento_Global,Nivel_Volatilidad,Volatilidad Histórica Anualizada (%),Volatilidad 30D Anualizada (%),Oscilación Diaria Promedio (ATR %),Periodo_Retorno
+ORBIA.MX,2026-08-12,Red Base -> LSTM,80% - 89.9%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (39.4%),39.4,19.81,3.94,7
+MELI,2026-08-12,Red Base -> Cópulas,80% - 89.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (5/6),Neutro ⚪,Media 🟡 (39.3%),39.29,35.03,3.24,7
+BIMBOA.MX,2026-08-12,Red Base -> LSTM,70% - 79.9%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (29.8%),29.76,17.72,2.88,7
+GCC,2026-08-12,Red Base -> LSTM,70% - 79.9%,VENDER 🔴,🟢 Consenso,Sin Datos ❓,Baja 🟢 (16.4%),16.37,13.5,0.85,7
+IONQ,2026-08-12,Meta Global RL,70% - 79.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Alta 🔴 (107.3%),107.32,86.06,8.38,7
+BABA,2026-08-12,Red Base -> Cópulas,70% - 79.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Media 🟡 (46.7%),46.72,45.86,2.72,7
+GOOGL,2026-08-12,Red Base -> Todo Portafolio,70% - 79.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Baja 🟢 (32.9%),32.91,43.93,2.54,7
+DAL,2026-08-12,Red Base -> Todo Portafolio,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (46.7%),46.72,32.58,3.46,7
+VRT,2026-08-12,Red Base -> Estándar,60% - 69.9%,VENDER 🔴,🟢 Consenso,Optimista 🟢,Alta 🔴 (71.8%),71.76,81.29,5.25,7
+CEMEXCPO.MX,2026-08-12,Red Base -> LSTM,60% - 69.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Baja 🟢 (33.6%),33.61,23.77,2.89,7
+AC.MX,2026-08-12,Red Base -> Todo Portafolio,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Baja 🟢 (24.1%),24.11,20.39,2.61,7
+ZS,2026-08-12,Red Base -> Todo Portafolio,60% - 69.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Media 🟡 (57.4%),57.43,47.35,3.83,7
+Uber,2026-08-12,Red Base -> Cópulas,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Media 🟡 (37.7%),37.68,42.69,3.18,7
+META,2026-08-12,"Red Base -> Estándar, Todo Portafolio",60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Media 🟡 (39.9%),39.92,54.95,2.72,7
+MFRISCOA-1.MX,2026-08-12,Red Base -> Todo Portafolio,60% - 69.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Sin Datos ❓,Alta 🔴 (64.0%),64.02,48.3,4.38,7
+BBAI,2026-08-12,Empate c/ Red Base -> LSTM,60% - 69.9%,VENDER 🔴,🟢 Consenso,Optimista 🟢,Alta 🔴 (107.5%),107.53,65.98,8.8,7
+PATH,2026-08-12,Red Base -> LSTM,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (60.0%),59.97,63.43,4.9,7
+ANET,2026-08-12,Red Base -> Todo Portafolio,60% - 69.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Media 🟡 (59.0%),58.95,63.19,4.12,7
+CUERVO.MX,2026-08-12,Red Base -> LSTM,60% - 69.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Media 🟡 (35.9%),35.9,26.05,3.64,7
+MCO,2026-08-12,Red Base -> Cópulas,60% - 69.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Baja 🟢 (28.9%),28.86,29.8,2.23,7
+GMEXICOB.MX,2026-08-12,Red Base -> LSTM,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Media 🟡 (36.2%),36.2,27.62,3.3,7
+BOLSAA.MX,2026-08-12,Red Base -> Todo Portafolio,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (28.8%),28.79,27.48,2.85,7
+PE&OLES.MX,2026-08-12,Red Base -> Cópulas,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Sin Datos ❓,Media 🟡 (53.5%),53.5,32.21,4.79,7
+CHDRAUIB.MX,2026-08-12,"Red Base -> Cópulas, Todo Portafolio",60% - 69.9%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Baja 🟢 (23.9%),23.87,13.95,2.48,7`;
+
+        const EMBEDDED_COMPLETO_CSV = `Acción,Fecha Base,Fecha Proyección (+7 días hábiles),Ganador_Absoluto_Histórico,Rango_Precisión_Histórico,Pred_Meta_Global,Pred_Votación,Voto_Estándar,Voto_Cópulas,Voto_Todo_Portafolio,Voto_LSTM,Recomendación,Alerta_Divergencia,Sentimiento_Global,Volatilidad Histórica Anualizada (%),Volatilidad 30D Anualizada (%),Oscilación Diaria Promedio (ATR %),Nivel_Volatilidad,Periodo_Retorno
+AUTLANB.MX,2026-08-12,2026-08-21,Empate c/ Red Base -> LSTM,< 50%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Baja (-),Sin recomendación (< 60% Precisión),⚠️ ALERT: Mayoría Disiente (4/6),Sin Datos ❓,32.78,18.76,2.6,Baja 🟢 (32.8%),7
+ORBIA.MX,2026-08-12,2026-08-21,Red Base -> LSTM,80% - 89.9%,Baja (-),Sube (+),Sube (+),Baja (-),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Optimista 🟢,39.4,19.81,3.94,Media 🟡 (39.4%),7
+MELI,2026-08-12,2026-08-21,Red Base -> Cópulas,80% - 89.9%,Baja (-),Baja (-),Baja (-),Sube (+),Baja (-),Baja (-),COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (5/6),Neutro ⚪,39.29,35.03,3.24,Media 🟡 (39.3%),7
+BIMBOA.MX,2026-08-12,2026-08-21,Red Base -> LSTM,70% - 79.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Optimista 🟢,29.76,17.72,2.88,Baja 🟢 (29.8%),7
+GCC,2026-08-12,2026-08-21,Red Base -> LSTM,70% - 79.9%,Sube (+),Baja (-),Baja (-),Sube (+),Sube (+),Baja (-),VENDER 🔴,🟢 Consenso,Sin Datos ❓,16.37,13.5,0.85,Baja 🟢 (16.4%),7
+IONQ,2026-08-12,2026-08-21,Meta Global RL,70% - 79.9%,Baja (-),Baja (-),Baja (-),Sube (+),Sube (+),Baja (-),VENDER 🔴,🟢 Consenso,Neutro ⚪,107.32,86.06,8.38,Alta 🔴 (107.3%),7
+BABA,2026-08-12,2026-08-21,Red Base -> Cópulas,70% - 79.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Neutro ⚪,46.72,45.86,2.72,Media 🟡 (46.7%),7
+GOOGL,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,70% - 79.9%,Baja (-),Baja (-),Baja (-),Sube (+),Baja (-),Baja (-),VENDER 🔴,🟢 Consenso,Neutro ⚪,32.91,43.93,2.54,Baja 🟢 (32.9%),7
+DAL,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Optimista 🟢,46.72,32.58,3.46,Media 🟡 (46.7%),7
+VRT,2026-08-12,2026-08-21,Red Base -> Estándar,60% - 69.9%,Baja (-),Baja (-),Baja (-),Baja (-),Baja (-),Sube (+),VENDER 🔴,🟢 Consenso,Optimista 🟢,71.76,81.29,5.25,Alta 🔴 (71.8%),7
+CEMEXCPO.MX,2026-08-12,2026-08-21,Red Base -> LSTM,60% - 69.9%,Baja (-),Baja (-),Baja (-),Sube (+),Baja (-),Sube (+),COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,33.61,23.77,2.89,Baja 🟢 (33.6%),7
+AC.MX,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,60% - 69.9%,Baja (-),Sube (+),Baja (-),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Neutro ⚪,24.11,20.39,2.61,Baja 🟢 (24.1%),7
+ZS,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,60% - 69.9%,Baja (-),Baja (-),Sube (+),Baja (-),Baja (-),Baja (-),VENDER 🔴,🟢 Consenso,Neutro ⚪,57.43,47.35,3.83,Media 🟡 (57.4%),7
+Uber,2026-08-12,2026-08-21,Red Base -> Cópulas,60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Neutro ⚪,37.68,42.69,3.18,Media 🟡 (37.7%),7
+META,2026-08-12,2026-08-21,"Red Base -> Estándar, Todo Portafolio",60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Neutro ⚪,39.92,54.95,2.72,Media 🟡 (39.9%),7
+MFRISCOA-1.MX,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,60% - 69.9%,Baja (-),Baja (-),Baja (-),Baja (-),Sube (+),Sube (+),COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Sin Datos ❓,64.02,48.3,4.38,Alta 🔴 (64.0%),7
+BBAI,2026-08-12,2026-08-21,Empate c/ Red Base -> LSTM,60% - 69.9%,Baja (-),Baja (-),Sube (+),Baja (-),Baja (-),Baja (-),VENDER 🔴,🟢 Consenso,Optimista 🟢,107.53,65.98,8.8,Alta 🔴 (107.5%),7
+PATH,2026-08-12,2026-08-21,Red Base -> LSTM,60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Optimista 🟢,59.97,63.43,4.9,Media 🟡 (60.0%),7
+ANET,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,60% - 69.9%,Baja (-),Baja (-),Baja (-),Baja (-),Sube (+),Sube (+),COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,58.95,63.19,4.12,Media 🟡 (59.0%),7
+CUERVO.MX,2026-08-12,2026-08-21,Red Base -> LSTM,60% - 69.9%,Baja (-),Baja (-),Baja (-),Sube (+),Baja (-),Sube (+),COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,35.9,26.05,3.64,Media 🟡 (35.9%),7
+MCO,2026-08-12,2026-08-21,Red Base -> Cópulas,60% - 69.9%,Baja (-),Baja (-),Baja (-),Baja (-),Sube (+),Sube (+),VENDER 🔴,🟢 Consenso,Neutro ⚪,28.86,29.8,2.23,Baja 🟢 (28.9%),7
+GMEXICOB.MX,2026-08-12,2026-08-21,Red Base -> LSTM,60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Baja (-),Sube (+),COMPRAR 🟢,🟢 Consenso,Neutro ⚪,36.2,27.62,3.3,Media 🟡 (36.2%),7
+BOLSAA.MX,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),COMPRAR 🟢,🟢 Consenso,Optimista 🟢,28.79,27.48,2.85,Baja 🟢 (28.8%),7
+PE&OLES.MX,2026-08-12,2026-08-21,Red Base -> Cópulas,60% - 69.9%,Baja (-),Sube (+),Sube (+),Sube (+),Baja (-),Baja (-),COMPRAR 🟢,🟢 Consenso,Sin Datos ❓,53.5,32.21,4.79,Media 🟡 (53.5%),7
+CHDRAUIB.MX,2026-08-12,2026-08-21,"Red Base -> Cópulas, Todo Portafolio",60% - 69.9%,Baja (-),Sube (+),Sube (+),Baja (-),Sube (+),Sube (+),VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,23.87,13.95,2.48,Baja 🟢 (23.9%),7
+OMAB,2026-08-12,2026-08-21,Red Base -> LSTM,50% - 59.9%,Baja (-),Baja (-),Baja (-),Baja (-),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,32.17,27.52,3.05,Baja 🟢 (32.2%),7
+ASUR,2026-08-12,2026-08-21,"Empate c/ Red Base -> Cópulas, Todo Portafolio",50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Baja (-),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,47.42,48.77,4.56,Media 🟡 (47.4%),7
+BBAJIOO.MX,2026-08-12,2026-08-21,Empate c/ Red Base -> Estándar,50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Baja (-),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,31.0,24.29,3.07,Baja 🟢 (31.0%),7
+AXTELCPO.MX,2026-08-12,2026-08-21,Red Base -> Cópulas,50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Optimista 🟢,42.3,27.13,4.5,Media 🟡 (42.3%),7
+ALPEKA.MX,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Baja (-),Baja (-),Sin recomendación (< 60% Precisión),🟢 Consenso,Optimista 🟢,40.62,15.95,3.92,Media 🟡 (40.6%),7
+V,2026-08-12,2026-08-21,"Red Base -> Estándar, LSTM",50% - 59.9%,Baja (-),Baja (-),Baja (-),Baja (-),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,23.02,21.78,1.88,Baja 🟢 (23.0%),7
+SPGI,2026-08-12,2026-08-21,Meta Global RL,50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),⚠️ ALERT: Mayoría Disiente (5/6),Neutro ⚪,28.99,38.21,2.13,Baja 🟢 (29.0%),7
+RGTI,2026-08-12,2026-08-21,Red Base -> LSTM,50% - 59.9%,Baja (-),Baja (-),Baja (-),Baja (-),Baja (-),Baja (-),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,129.52,90.98,9.41,Alta 🔴 (129.5%),7
+MA,2026-08-12,2026-08-21,"Empate c/ Red Base -> Estándar, LSTM",50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,23.53,23.5,1.93,Baja 🟢 (23.5%),7
+GTLB,2026-08-12,2026-08-21,Red Base -> LSTM,50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Baja (-),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,59.84,54.86,4.86,Media 🟡 (59.8%),7
+FRSH,2026-08-12,2026-08-21,Red Base -> LSTM,50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Baja (-),Sin recomendación (< 60% Precisión),⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,47.15,47.38,3.98,Media 🟡 (47.1%),7
+AXP,2026-08-12,2026-08-21,"Empate c/ Red Base -> Estándar, LSTM",50% - 59.9%,Baja (-),Sube (+),Sube (+),Sube (+),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Optimista 🟢,30.36,29.11,2.26,Baja 🟢 (30.4%),7
+GFNORTEO.MX,2026-08-12,2026-08-21,Red Base -> Todo Portafolio,50% - 59.9%,Baja (-),Sube (+),Baja (-),Sube (+),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Optimista 🟢,28.54,25.9,2.69,Baja 🟢 (28.5%),7
+GAPB.MX,2026-08-12,2026-08-21,Red Base -> Cópulas,50% - 59.9%,Baja (-),Sube (+),Baja (-),Sube (+),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Optimista 🟢,30.06,26.21,3.3,Baja 🟢 (30.1%),7
+SNPS,2026-08-12,2026-08-21,Meta Global RL,50% - 59.9%,Baja (-),Sube (+),Sube (+),Baja (-),Baja (-),Sube (+),Sin recomendación (< 60% Precisión),🟢 Consenso,Neutro ⚪,55.27,40.49,3.37,Media 🟡 (55.3%),7
+ARM,2026-08-12,2026-08-21,Empate c/ Red Base -> Cópulas,50% - 59.9%,Baja (-),Sube (+),Sube (+),Baja (-),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),⚠️ ALERT: Mayoría Disiente (4/6),Optimista 🟢,72.18,91.26,5.17,Alta 🔴 (72.2%),7
+FRCOY,2026-08-12,2026-08-21,"Red Base -> Cópulas, LSTM",50% - 59.9%,Baja (-),Sube (+),Sube (+),Baja (-),Sube (+),Sube (+),Sin recomendación (< 60% Precisión),⚠️ ALERT: Mayoría Disiente (4/6),Optimista 🟢,34.23,41.87,2.7,Baja 🟢 (34.2%),7`;
+
+        let dataResumen = [];
+        let dataCompleto = [];
+        let activeTab = 'RESUMEN'; 
+        let isDetailedView = false;
+        
+        let fullData = [];
+        let filteredData = [];
+        let currentSortCol = '';
+        let sortAsc = false;
+        let activeFilter = 'ALL';
+        let filterDivergenciaOnly = false;
+
+        function inicializarDatasets(dataRes, dataComp) {
+            dataResumen = dataRes;
+            dataCompleto = dataComp;
+
+            document.getElementById('badgeCountResumen').innerText = dataResumen.length;
+            document.getElementById('badgeCountCompleto').innerText = dataCompleto.length;
+
+            switchTab('RESUMEN');
+        }
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+            activeFilter = 'ALL';
+            filterDivergenciaOnly = false;
+
+            const btnRes = document.getElementById('tabBtnResumen');
+            const btnComp = document.getElementById('tabBtnCompleto');
+            const lblDesc = document.getElementById('tabDescLabel');
+            const btnSinRec = document.getElementById('btnFilterSINREC');
+
+            if (tabName === 'RESUMEN') {
+                btnRes.className = 'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/30';
+                btnComp.className = 'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800';
+                lblDesc.innerText = 'Mostrando únicamente acciones operables (Precisión Histórica ≥ 60%).';
+                btnSinRec.classList.add('hidden');
+
+                document.getElementById('lblKpiTotalTitle').innerText = 'Señales Operables';
+                document.getElementById('lblKpiTotalSub').innerText = 'Precisión Histórica ≥ 60%';
+
+                fullData = [...dataResumen];
+            } else {
+                btnComp.className = 'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/30';
+                btnRes.className = 'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800';
+                lblDesc.innerText = 'Mostrando el universo completo de activos evaluados por la Red Híbrida V7.';
+                btnSinRec.classList.remove('hidden');
+
+                document.getElementById('lblKpiTotalTitle').innerText = 'Total Activos Evaluados';
+                document.getElementById('lblKpiTotalSub').innerText = 'Todos los rangos de precisión';
+
+                fullData = [...dataCompleto];
+            }
+
+            filteredData = [...fullData];
+            updateKPIs();
+            renderTableHeader();
+            renderTable();
+
+            if (fullData.length > 0) {
+                if (fullData[0]['Fecha Base']) {
+                    document.getElementById('lblFechaBase').innerText = fullData[0]['Fecha Base'];
+                }
+
+                let rawVal = fullData[0]['Periodo_Retorno'] || fullData[0]['periodo_retorno'] || fullData[0]['Días'] || '7';
+                let numDias = rawVal.toString().replace(/[^0-9]/g, '');
+                if (!numDias) numDias = '7';
+
+                let txtCompleto = `${numDias} Días Hábiles`;
+                document.getElementById('lblHorizonteHeader').innerText = numDias;
+                document.getElementById('lblPeriodoRetornoBadge').innerText = txtCompleto;
+            }
+        }
+
+        function toggleDetailedView() {
+            isDetailedView = !isDetailedView;
+            const btn = document.getElementById('btnToggleDetail');
+            const icon = document.getElementById('iconToggleDetail');
+            const txt = document.getElementById('textToggleDetail');
+
+            if (isDetailedView) {
+                btn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-400/50 shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 whitespace-nowrap';
+                icon.innerText = '✅';
+                txt.innerText = 'Viendo Todos los Campos (Modo Detallado Activo)';
+            } else {
+                btn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-indigo-300 hover:bg-slate-700 hover:text-white border border-indigo-800/50 transition-all flex items-center gap-2 whitespace-nowrap shadow-sm';
+                icon.innerText = '👁️';
+                txt.innerText = 'Ver Todos los Campos (Votos de Modelos)';
+            }
+
+            renderTableHeader();
+            renderTable();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.location.protocol === 'file:') {
+                Papa.parse(EMBEDDED_RESUMEN_CSV, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(res1) {
+                        Papa.parse(EMBEDDED_COMPLETO_CSV, {
+                            header: true, skipEmptyLines: true,
+                            complete: function(res2) {
+                                inicializarDatasets(res1.data, res2.data);
+                            }
+                        });
+                    }
+                });
+            } else {
+                Papa.parse('Recomendaciones_V7_Resumen.csv', {
+                    download: true, header: true, skipEmptyLines: true,
+                    complete: function(res1) {
+                        Papa.parse('Recomendaciones_V7_Completo.csv', {
+                            download: true, header: true, skipEmptyLines: true,
+                            complete: function(res2) {
+                                if (res1.data && res1.data.length > 0 && res2.data && res2.data.length > 0) {
+                                    inicializarDatasets(res1.data, res2.data);
+                                } else {
+                                    cargarEmbeddedFallbacks();
+                                }
+                            },
+                            error: cargarEmbeddedFallbacks
+                        });
+                    },
+                    error: cargarEmbeddedFallbacks
+                });
+            }
+        });
+
+        function cargarEmbeddedFallbacks() {
+            Papa.parse(EMBEDDED_RESUMEN_CSV, {
+                header: true, skipEmptyLines: true,
+                complete: function(res1) {
+                    Papa.parse(EMBEDDED_COMPLETO_CSV, {
+                        header: true, skipEmptyLines: true,
+                        complete: function(res2) {
+                            inicializarDatasets(res1.data, res2.data);
+                        }
+                    });
+                }
+            });
+        }
+
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                Papa.parse(file, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        inicializarDatasets(results.data, results.data);
+                    }
+                });
+            }
+        });
+
+        function updateKPIs() {
+            const total = fullData.length;
+            const comprar = fullData.filter(d => (d['Recomendación'] || '').includes('COMPRAR')).length;
+            const vender = fullData.filter(d => (d['Recomendación'] || '').includes('VENDER')).length;
+            const alertas = fullData.filter(d => (d['Alerta_Divergencia'] || '').includes('ALERT')).length;
+
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiComprar').innerText = comprar;
+            document.getElementById('kpiVender').innerText = vender;
+            document.getElementById('kpiAlertas').innerText = alertas;
+        }
+
+        function renderTableHeader() {
+            const trHead = document.getElementById('tableHeaderRow');
+            const tableEl = document.getElementById('mainDataTable');
+            
+            if (isDetailedView) {
+                tableEl.classList.add('whitespace-nowrap');
+                trHead.innerHTML = `
+                    <th class="py-3.5 px-3 cursor-pointer hover:text-white" onclick="sortTable('Acción')">Acción 📊 ⇳</th>
+                    <th class="py-3.5 px-3">Fecha Base</th>
+                    <th class="py-3.5 px-3">Fecha Proyección</th>
+                    <th class="py-3.5 px-3">Modelo Ganador</th>
+                    <th class="py-3.5 px-3 cursor-pointer hover:text-white" onclick="sortTable('Rango_Precisión_Histórico')">Precisión ⇳</th>
+                    <th class="py-3.5 px-3 text-center">Pred. Meta Global</th>
+                    <th class="py-3.5 px-3 text-center">Pred. Votación</th>
+                    <th class="py-3.5 px-3 text-center">Voto Estándar</th>
+                    <th class="py-3.5 px-3 text-center">Voto Cópulas</th>
+                    <th class="py-3.5 px-3 text-center">Voto Todo Portafolio</th>
+                    <th class="py-3.5 px-3 text-center">Voto LSTM</th>
+                    <th class="py-3.5 px-3 text-center">Recomendación</th>
+                    <th class="py-3.5 px-3">Alerta Divergencia</th>
+                    <th class="py-3.5 px-3">Sentimiento</th>
+                    <th class="py-3.5 px-3 text-right cursor-pointer hover:text-white" onclick="sortTable('Volatilidad Histórica Anualizada (%)')">Vol. Hist. % ⇳</th>
+                    <th class="py-3.5 px-3 text-right cursor-pointer hover:text-white" onclick="sortTable('Volatilidad 30D Anualizada (%)')">Vol. 30D % ⇳</th>
+                    <th class="py-3.5 px-3 text-right">ATR %</th>
+                    <th class="py-3.5 px-3">Nivel Volatilidad</th>
+                `;
+            } else {
+                tableEl.classList.remove('whitespace-nowrap');
+                trHead.innerHTML = `
+                    <th class="py-3.5 px-3 cursor-pointer hover:text-white" onclick="sortTable('Acción')">Acción 📊 ⇳</th>
+                    <th class="py-3.5 px-3">Modelo Ganador</th>
+                    <th class="py-3.5 px-3 cursor-pointer hover:text-white" onclick="sortTable('Rango_Precisión_Histórico')">Precisión Hist. ⇳</th>
+                    <th class="py-3.5 px-3 text-center">Recomendación</th>
+                    <th class="py-3.5 px-3">Alerta Divergencia</th>
+                    <th class="py-3.5 px-3">Sentimiento Global</th>
+                    <th class="py-3.5 px-3">Nivel Volatilidad</th>
+                `;
+            }
+        }
+
+        function formatVoteBadge(votoStr) {
+            if (!votoStr) return '<span class="text-slate-600">-</span>';
+            const str = votoStr.toString();
+            if (str.includes('Sube') || str === '1') {
+                return '<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold text-[11px] border border-emerald-800/40">Sube (+) ↗</span>';
+            } else if (str.includes('Baja') || str === '-1') {
+                return '<span class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold text-[11px] border border-rose-800/40">Baja (-) ↘</span>';
+            }
+            return `<span class="text-xs text-slate-300">${str}</span>`;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+
+            let dataToDisplay = filteredData.filter(row => {
+                const matchSearch = (row['Acción'] || '').toLowerCase().includes(searchVal) ||
+                                    (row['Ganador_Absoluto_Histórico'] || '').toLowerCase().includes(searchVal);
+
+                let matchFilter = true;
+                if (activeFilter === 'COMPRAR') matchFilter = (row['Recomendación'] || '').includes('COMPRAR');
+                if (activeFilter === 'VENDER') matchFilter = (row['Recomendación'] || '').includes('VENDER');
+                if (activeFilter === 'SIN_REC') matchFilter = (row['Recomendación'] || '').includes('Sin recomendación');
+                
+                if (filterDivergenciaOnly) {
+                    matchFilter = matchFilter && (row['Alerta_Divergencia'] || '').includes('ALERT');
+                }
+
+                return matchSearch && matchFilter;
+            });
+
+            if (dataToDisplay.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="18" class="py-8 text-center text-slate-500">No se encontraron resultados coincidentes.</td></tr>`;
+                return;
+            }
+
+            dataToDisplay.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'glass-table-row';
+
+                const ticker = row['Acción'] || '';
+                const rec = row['Recomendación'] || '';
+                const prec = row['Rango_Precisión_Histórico'] || '';
+                const vol = row['Volatilidad Histórica Anualizada (%)'] ? row['Volatilidad Histórica Anualizada (%)'] + '%' : '-';
+
+                let recBadge = '<span class="badge bg-slate-800 text-slate-400 border border-slate-700/50">Sin rec. (&lt;60%) ⚪</span>';
+                if (rec.includes('COMPRAR')) recBadge = '<span class="badge bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 shadow-sm shadow-emerald-500/10">COMPRAR 🟢</span>';
+                if (rec.includes('VENDER')) recBadge = '<span class="badge bg-rose-950/80 text-rose-400 border border-rose-800/60 shadow-sm shadow-rose-500/10">VENDER 🔴</span>';
+
+                const divAlert = row['Alerta_Divergencia'] || '';
+                let divBadge = '<span class="text-xs text-emerald-400/90 font-medium">🟢 Consenso</span>';
+                if (divAlert.includes('ALERT')) {
+                    divBadge = `<span class="badge bg-amber-950/80 text-amber-300 border border-amber-800/60" title="${divAlert}">⚠️ Divergencia</span>`;
+                }
+
+                const safeTicker = ticker.replace(/'/g, "\\'");
+                const safeRec = rec.replace(/'/g, "\\'");
+                const safePrec = prec.replace(/'/g, "\\'");
+                const safeVol = vol.replace(/'/g, "\\'");
+
+                const btnGraficaCompacta = `
+                    <button onclick="openChartModal('${safeTicker}', '${safeRec}', '${safePrec}', '${safeVol}')" 
+                            class="inline-flex items-center gap-1.5 hover:text-indigo-300 group transition-colors text-left font-mono font-bold text-white text-sm">
+                        <span class="underline decoration-indigo-500/50 decoration-2 group-hover:decoration-indigo-300">${ticker}</span>
+                        <span class="text-[11px] bg-indigo-950 text-indigo-300 group-hover:bg-indigo-600 group-hover:text-white px-1.5 py-0.5 rounded border border-indigo-700/50 transition-all">📊</span>
+                    </button>`;
+
+                if (isDetailedView) {
+                    tr.innerHTML = `
+                        <td class="py-3 px-3 font-bold text-white">${btnGraficaCompacta}</td>
+                        <td class="py-3 px-3 text-xs text-slate-400">${row['Fecha Base'] || '-'}</td>
+                        <td class="py-3 px-3 text-xs text-indigo-300 font-mono">${row['Fecha Proyección (+7 días hábiles)'] || row['Fecha Proyección'] || '-'}</td>
+                        <td class="py-3 px-3 text-xs text-slate-300 font-mono">${row['Ganador_Absoluto_Histórico'] || ''}</td>
+                        <td class="py-3 px-3 font-semibold ${prec.includes('< 50%') || prec.includes('50% - 59.9%') ? 'text-slate-400' : 'text-indigo-300'}">${prec}</td>
+                        <td class="py-3 px-3 text-center">${formatVoteBadge(row['Pred_Meta_Global'])}</td>
+                        <td class="py-3 px-3 text-center">${formatVoteBadge(row['Pred_Votación'])}</td>
+                        <td class="py-3 px-3 text-center">${formatVoteBadge(row['Voto_Estándar'])}</td>
+                        <td class="py-3 px-3 text-center">${formatVoteBadge(row['Voto_Cópulas'])}</td>
+                        <td class="py-3 px-3 text-center">${formatVoteBadge(row['Voto_Todo_Portafolio'])}</td>
+                        <td class="py-3 px-3 text-center">${formatVoteBadge(row['Voto_LSTM'])}</td>
+                        <td class="py-3 px-3 text-center">${recBadge}</td>
+                        <td class="py-3 px-3">${divBadge}</td>
+                        <td class="py-3 px-3 text-slate-300">${row['Sentimiento_Global'] || 'Sin Datos ❓'}</td>
+                        <td class="py-3 px-3 text-right font-mono text-slate-200">${row['Volatilidad Histórica Anualizada (%)'] ? row['Volatilidad Histórica Anualizada (%)'] + '%' : '-'}</td>
+                        <td class="py-3 px-3 text-right font-mono text-slate-300">${row['Volatilidad 30D Anualizada (%)'] ? row['Volatilidad 30D Anualizada (%)'] + '%' : '-'}</td>
+                        <td class="py-3 px-3 text-right font-mono text-slate-300">${row['Oscilación Diaria Promedio (ATR %)'] ? row['Oscilación Diaria Promedio (ATR %)'] + '%' : '-'}</td>
+                        <td class="py-3 px-3 text-xs">${row['Nivel_Volatilidad'] || 'Sin Datos ❓'}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td class="py-3 px-3 font-bold text-white">${btnGraficaCompacta}</td>
+                        <td class="py-3 px-3 text-xs text-slate-300 font-mono">${row['Ganador_Absoluto_Histórico'] || ''}</td>
+                        <td class="py-3 px-3 font-semibold ${prec.includes('< 50%') || prec.includes('50% - 59.9%') ? 'text-slate-400' : 'text-indigo-300'}">${prec}</td>
+                        <td class="py-3 px-3 text-center">${recBadge}</td>
+                        <td class="py-3 px-3">${divBadge}</td>
+                        <td class="py-3 px-3 text-slate-300 text-xs">${row['Sentimiento_Global'] || 'Sin Datos ❓'}</td>
+                        <td class="py-3 px-3 text-xs">${row['Nivel_Volatilidad'] || 'Sin Datos ❓'}</td>
+                    `;
+                }
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        function filterRecomendacion(filterType) {
+            activeFilter = filterType;
+            filterDivergenciaOnly = false;
+            
+            ['ALL', 'COMPRAR', 'VENDER', 'SINREC', 'DIVERGENCIA'].forEach(f => {
+                const btn = document.getElementById('btnFilter' + f);
+                if (btn) {
+                    if (f === filterType) {
+                        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-md shadow-indigo-600/20 transition-all';
+                    } else {
+                        btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 transition-all';
+                    }
+                }
+            });
+            renderTable();
+        }
+
+        function filterDivergencia() {
+            filterDivergenciaOnly = !filterDivergenciaOnly;
+            const btn = document.getElementById('btnFilterDIVERGENCIA');
+            if (filterDivergenciaOnly) {
+                btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 text-white shadow-md shadow-amber-600/20 transition-all';
+            } else {
+                btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 transition-all';
+            }
+            renderTable();
+        }
+
+        function sortTable(column) {
+            if (currentSortCol === column) {
+                sortAsc = !sortAsc;
+            } else {
+                currentSortCol = column;
+                sortAsc = true;
+            }
+
+            filteredData.sort((a, b) => {
+                let valA = a[column] || '';
+                let valB = b[column] || '';
+
+                if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+                    valA = parseFloat(valA);
+                    valB = parseFloat(valB);
+                }
+
+                if (valA < valB) return sortAsc ? -1 : 1;
+                if (valA > valB) return sortAsc ? 1 : -1;
+                return 0;
+            });
+
+            renderTable();
+        }
+
+        function openChartModal(ticker, rec, prec, vol) {
+            const modal = document.getElementById('chartModal');
+            document.getElementById('modalTickerTitle').innerText = ticker;
+            
+            let recHTML = '<span class="badge bg-slate-800 text-slate-300">MANTENER 🟡</span>';
+            if (rec.includes('COMPRAR')) recHTML = '<span class="badge bg-emerald-950 text-emerald-400 border border-emerald-800">COMPRAR 🟢</span>';
+            if (rec.includes('VENDER')) recHTML = '<span class="badge bg-rose-950 text-rose-400 border border-rose-800">VENDER 🔴</span>';
+            
+            document.getElementById('modalRecBadge').innerHTML = recHTML;
+            document.getElementById('modalSubInfo').innerText = `Precisión Histórica: ${prec} | Volatilidad Anualizada: ${vol}`;
+            
+            const btnYahoo = document.getElementById('btnYahooFinance');
+            btnYahoo.href = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`;
+
+            let tvSymbol = ticker;
+            if (ticker.endsWith('.MX')) {
+                const cleanMex = ticker.replace('.MX', '');
+                tvSymbol = `BMV:${cleanMex}`;
+            } else if (ticker === 'Uber') {
+                tvSymbol = 'NYSE:UBER';
+            }
+
+            const container = document.getElementById('tvChartContainer');
+            container.innerHTML = '<div id="tradingview_widget" class="w-full h-full"></div>';
+
+            modal.classList.remove('hidden');
+
+            try {
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": tvSymbol,
+                    "interval": "D",
+                    "timezone": "America/Mexico_City",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "es",
+                    "toolbar_bg": "#0b0f19",
+                    "enable_publishing": false,
+                    "allow_symbol_change": true,
+                    "container_id": "tradingview_widget"
+                });
+            } catch (e) {
+                console.log("TradingView widget init:", e);
+            }
+        }
+
+        function closeChartModal() {
+            const modal = document.getElementById('chartModal');
+            modal.classList.add('hidden');
+            document.getElementById('tvChartContainer').innerHTML = '';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeChartModal();
+            }
+        });
+    </script>
+</body>
+</html>
