@@ -1,0 +1,42 @@
+﻿Acción,Fecha Base,Ganador_Absoluto_Histórico,Rango_Precisión_Histórico,Recomendación,Alerta_Divergencia,Sentimiento_Global,Nivel_Volatilidad,Volatilidad Histórica Anualizada (%),Volatilidad 30D Anualizada (%),Oscilación Diaria Promedio (ATR %)
+ASUR,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Media 🟡 (47.4%),47.35,49.56,4.55
+Uber,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Media 🟡 (37.5%),37.51,40.86,3.18
+CEMEXCPO.MX,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Baja 🟢 (33.6%),33.61,25.31,2.88
+BOLSAA.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (28.7%),28.74,26.99,2.84
+BBAJIOO.MX,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Baja 🟢 (30.9%),30.88,24.39,3.06
+META,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Media 🟡 (40.0%),40.05,48.71,2.73
+MELI,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Optimista 🟢,Media 🟡 (39.2%),39.19,34.85,3.24
+PE&OLES.MX,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Sin Datos ❓,Media 🟡 (53.4%),53.38,35.37,4.76
+AXTELCPO.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (42.5%),42.53,32.85,4.51
+GFNORTEO.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (28.5%),28.46,25.55,2.67
+FRSH,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (47.6%),47.57,53.31,3.99
+CUERVO.MX,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Media 🟡 (35.8%),35.8,27.34,3.63
+BIMBOA.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (29.8%),29.79,20.74,2.88
+ALPEKA.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (40.6%),40.57,20.34,3.9
+ORBIA.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Media 🟡 (39.3%),39.32,21.97,3.92
+IONQ,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Optimista 🟢,Alta 🔴 (106.9%),106.92,84.28,8.36
+ARM,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Alta 🔴 (72.1%),72.1,88.92,5.17
+ANET,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Optimista 🟢,Media 🟡 (58.9%),58.88,59.35,4.11
+VRT,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Alta 🔴 (71.7%),71.66,78.17,5.23
+SNPS,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Media 🟡 (55.1%),55.08,39.68,3.37
+PATH,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Alta 🔴 (60.2%),60.21,68.11,4.92
+OMAB,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Baja 🟢 (32.2%),32.24,25.97,3.05
+MFRISCOA-1.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Sin Datos ❓,Alta 🔴 (64.7%),64.67,56.12,4.41
+GTLB,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Optimista 🟢,Media 🟡 (59.9%),59.91,59.39,4.87
+GOOGL,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (32.8%),32.76,43.49,2.53
+GAPB.MX,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Optimista 🟢,Baja 🟢 (30.0%),29.99,25.4,3.29
+BBAI,2026-08-18,Red Base -> LSTM,>= 90%,VENDER 🔴,🟢 Consenso,Optimista 🟢,Alta 🔴 (107.1%),107.06,65.53,8.76
+AXP,2026-08-18,Red Base -> LSTM,>= 90%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Baja 🟢 (30.3%),30.26,27.43,2.25
+AUTLANB.MX,2026-08-18,Red Base -> LSTM,80% - 89.9%,COMPRAR 🟢,🟢 Consenso,Sin Datos ❓,Baja 🟢 (32.7%),32.66,19.47,2.59
+CHDRAUIB.MX,2026-08-18,Red Base -> LSTM,80% - 89.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Baja 🟢 (23.9%),23.85,15.22,2.47
+BABA,2026-08-18,Red Base -> Estándar,80% - 89.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Media 🟡 (46.6%),46.59,46.27,2.71
+RGTI,2026-08-18,Red Base -> LSTM,80% - 89.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Alta 🔴 (128.9%),128.95,87.85,9.36
+MCO,2026-08-18,Red Base -> LSTM,80% - 89.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Baja 🟢 (28.8%),28.84,26.12,2.23
+FRCOY,2026-08-18,Red Base -> Todo Portafolio,70% - 79.9%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Optimista 🟢,Baja 🟢 (34.2%),34.18,39.35,2.69
+GCC,2026-08-18,Empate c/ Red Base -> Estándar,70% - 79.9%,COMPRAR 🟢,🟢 Consenso,Pesimista 🔴,Baja 🟢 (16.4%),16.37,13.27,0.85
+GMEXICOB.MX,2026-08-18,Red Base -> LSTM,70% - 79.9%,VENDER 🔴,🟢 Consenso,Neutro ⚪,Media 🟡 (36.1%),36.11,29.04,3.29
+MA,2026-08-18,Empate c/ Red Base -> Todo Portafolio,70% - 79.9%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Baja 🟢 (23.5%),23.52,22.32,1.93
+ZS,2026-08-18,Red Base -> LSTM,70% - 79.9%,COMPRAR 🟢,⚠️ ALERT: Mayoría Disiente (4/6),Neutro ⚪,Media 🟡 (57.4%),57.38,49.6,3.83
+AC.MX,2026-08-18,Red Base -> Todo Portafolio,70% - 79.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Baja 🟢 (24.0%),24.0,20.39,2.59
+SPGI,2026-08-18,Meta Global RL,60% - 69.9%,VENDER 🔴,⚠️ ALERT: Mayoría Disiente (5/6),Neutro ⚪,Baja 🟢 (29.0%),29.03,28.41,2.14
+V,2026-08-18,Red Base -> Cópulas,60% - 69.9%,COMPRAR 🟢,🟢 Consenso,Neutro ⚪,Baja 🟢 (23.0%),23.0,19.46,1.88
